@@ -35,6 +35,14 @@ dependencies {
    implementation("org.jetbrains.kotlin:kotlin-reflect")
    runtimeOnly("com.mysql:mysql-connector-j")
 
+   // ShardingSphere
+   implementation("org.apache.shardingsphere:shardingsphere-jdbc-core:5.3.2")
+   implementation("org.apache.shardingsphere:shardingsphere-cluster-mode-core:5.3.2")
+   implementation("org.apache.shardingsphere:shardingsphere-cluster-mode-repository-zookeeper:5.3.2")
+   implementation("org.apache.shardingsphere:shardingsphere-cluster-mode-repository-api:5.3.2")
+// https://mvnrepository.com/artifact/org.yaml/snakeyaml
+   implementation("org.yaml:snakeyaml:1.33")
+
    testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 

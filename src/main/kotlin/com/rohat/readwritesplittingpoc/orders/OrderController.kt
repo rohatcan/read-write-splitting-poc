@@ -23,7 +23,7 @@ class OrderController(
 
    @Transactional(readOnly = true)
    fun getOrder(id: Long): Order {
-      return orderRepository.findByIdOrNull(id) ?: throw Exception("Order not found")
+      return orderRepository.findByIdNative(id) ?: throw Exception("Order not found")
    }
 
 }

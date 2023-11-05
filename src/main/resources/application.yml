@@ -1,10 +1,10 @@
 spring:
   datasource:
     orders:
-      url: jdbc:mysql://localhost:4406/orders?serverTimezone=UTC&enabledTLSProtocols=TLSv1.2
+      url: jdbc:shardingsphere:classpath:orders.yaml
       username: root
       password: 111
-      driver-class-name: com.mysql.cj.jdbc.Driver
+      driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
     products:
       url: jdbc:mysql://localhost:4406/products?serverTimezone=UTC&enabledTLSProtocols=TLSv1.2
       username: root
