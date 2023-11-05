@@ -30,6 +30,8 @@ dependencies {
    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
    implementation("com.vaadin:vaadin-spring-boot-starter")
+   implementation("com.github.mvysny.karibudsl:karibu-dsl:1.1.2")
+
    implementation("org.jetbrains.kotlin:kotlin-reflect")
    runtimeOnly("com.mysql:mysql-connector-j")
 
