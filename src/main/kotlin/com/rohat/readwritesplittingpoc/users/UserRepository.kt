@@ -1,4 +1,5 @@
 package com.rohat.readwritesplittingpoc.users
 
-interface UserRepository {
-}
+import org.springframework.data.jpa.repository.JpaRepository
+
+interface UserRepository: JpaRepository<User, Long>
