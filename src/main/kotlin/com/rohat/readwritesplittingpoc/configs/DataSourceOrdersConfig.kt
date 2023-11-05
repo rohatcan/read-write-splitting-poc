@@ -7,6 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Primary
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import org.springframework.orm.jpa.JpaTransactionManager
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean
@@ -24,22 +25,25 @@ import javax.sql.DataSource
 )
 class DataSourceOrdersConfig {
 
-
+   @Primary
    @Bean
    @ConfigurationProperties("spring.datasource.orders")
    fun ordersDataSourceProperties(): DataSourceProperties {
       return DataSourceProperties()
    }
 
+   @Primary
    @Bean
    fun ordersDataSource(): DataSource {
       return ordersDataSourceProperties().initializeDataSourceBuilder().type(HikariDataSource::class.java).build()
    }
 
+
+   @Primary
    @Bean
    fun ordersEntityManagerFactory(
       ordersEntityManagerFactoryBuilder: EntityManagerFactoryBuilder,
-      ordersDataSource: DataSource
+      @Qualifier("ordersDataSource") ordersDataSource: DataSource
    ): LocalContainerEntityManagerFactoryBean {
       return ordersEntityManagerFactoryBuilder
          .dataSource(ordersDataSource)
@@ -48,12 +52,12 @@ class DataSourceOrdersConfig {
          .build()
    }
 
+   @Primary
    @Bean
    fun ordersTransactionManager(
       @Qualifier("ordersEntityManagerFactory") ordersEntityManagerFactory: EntityManagerFactory
    ): PlatformTransactionManager {
       return JpaTransactionManager(ordersEntityManagerFactory)
    }
-
 
 }

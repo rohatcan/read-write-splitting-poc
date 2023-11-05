@@ -2,18 +2,18 @@ spring:
   datasource:
     orders:
       url: jdbc:mysql://localhost:4406/orders?serverTimezone=UTC&enabledTLSProtocols=TLSv1.2
-      username: mydb_user
-      password: mydb_pwd
-      driver-class-name: com.mysql.jdbc.Driver
+      username: root
+      password: 111
+      driver-class-name: com.mysql.cj.jdbc.Driver
     products:
-      url: jdbc:mysql://localhost:3306/products?serverTimezone=UTC&enabledTLSProtocols=TLSv1.2
+      url: jdbc:mysql://localhost:4406/products?serverTimezone=UTC&enabledTLSProtocols=TLSv1.2
       username: root
-      password: root
-      driver-class-name: com.mysql.jdbc.Driver
-    customers:
-      url: jdbc:mysql://localhost:3306/customers?serverTimezone=UTC&enabledTLSProtocols=TLSv1.2
+      password: 111
+      driver-class-name: com.mysql.cj.jdbc.Driver
+    users:
+      url: jdbc:mysql://localhost:4406/users?serverTimezone=UTC&enabledTLSProtocols=TLSv1.2
       username: root
-      password: root
-      driver-class-name: com.mysql.jdbc.Driver
+      password: 111
+      driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
