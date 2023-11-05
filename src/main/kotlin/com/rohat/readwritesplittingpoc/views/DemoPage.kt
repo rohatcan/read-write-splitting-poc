@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component
 class DemoPage : KComposite() {
 
     @Autowired
-
     private lateinit var orderController: OrderController
 
     @Autowired
