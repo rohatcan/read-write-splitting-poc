@@ -35,6 +35,8 @@ dependencies {
    implementation("org.jetbrains.kotlin:kotlin-reflect")
    runtimeOnly("com.mysql:mysql-connector-j")
 
+   implementation("net.ttddyy:datasource-proxy:1.9")
+
    testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 

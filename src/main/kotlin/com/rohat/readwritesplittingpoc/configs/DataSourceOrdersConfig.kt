@@ -1,9 +1,11 @@
 package com.rohat.readwritesplittingpoc.configs
 
-import com.zaxxer.hikari.HikariDataSource
+import net.ttddyy.dsproxy.listener.logging.CommonsLogLevel
+import net.ttddyy.dsproxy.listener.logging.SLF4JLogLevel
+import net.ttddyy.dsproxy.support.ProxyDataSourceBuilder
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties
 import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.boot.jdbc.DataSourceBuilder
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -25,25 +27,46 @@ import javax.sql.DataSource
 )
 class DataSourceOrdersConfig {
 
-   @Primary
    @Bean
-   @ConfigurationProperties("spring.datasource.orders")
-   fun ordersDataSourceProperties(): DataSourceProperties {
-      return DataSourceProperties()
+   @ConfigurationProperties("spring.datasource.orders.primary")
+   fun ordersPrimaryDataSource(): DataSource {
+      return DataSourceBuilder.create().build()
+   }
+
+   @Bean
+   @ConfigurationProperties("spring.datasource.orders.secondary")
+   fun ordersSecondaryDataSource(): DataSource {
+      return DataSourceBuilder.create().build()
    }
 
    @Primary
    @Bean
-   fun ordersDataSource(): DataSource {
-      return ordersDataSourceProperties().initializeDataSourceBuilder().type(HikariDataSource::class.java).build()
+   fun ordersActualDataSource(): DataSource {
+      val routingDataSource = RoutingDataSource()
+      val dataSourceMap: MutableMap<Any, Any> = HashMap()
+      dataSourceMap["PRIMARY"] = loggingDataSourceProxy("primary.db", ordersPrimaryDataSource())
+      dataSourceMap["SECONDARY"] = loggingDataSourceProxy("secondary.db", ordersSecondaryDataSource())
+      routingDataSource.setTargetDataSources(dataSourceMap)
+      routingDataSource.setDefaultTargetDataSource(ordersPrimaryDataSource())
+
+      return routingDataSource
    }
 
+   fun loggingDataSourceProxy(loggerName: String, dataSource: DataSource): DataSource {
+      return ProxyDataSourceBuilder
+         .create()
+         .dataSource(dataSource)
+         .name("ordersActualDataSource")
+         .logQueryByCommons(CommonsLogLevel.TRACE)
+         .logQueryBySlf4j(SLF4JLogLevel.TRACE, loggerName)
+         .build()
+   }
 
    @Primary
    @Bean
    fun ordersEntityManagerFactory(
       ordersEntityManagerFactoryBuilder: EntityManagerFactoryBuilder,
-      @Qualifier("ordersDataSource") ordersDataSource: DataSource
+      @Qualifier("ordersActualDataSource") ordersDataSource: DataSource
    ): LocalContainerEntityManagerFactoryBean {
       return ordersEntityManagerFactoryBuilder
          .dataSource(ordersDataSource)
