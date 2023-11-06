@@ -6,21 +6,16 @@ import com.rohat.readwritesplittingpoc.products.ProductController
 import com.rohat.readwritesplittingpoc.users.UserController
 import com.vaadin.flow.component.notification.Notification
 import com.vaadin.flow.router.Route
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Component
+import com.vaadin.flow.spring.annotation.SpringComponent
 
 @Route("demo")
-@Component
-class DemoPage : KComposite() {
+@SpringComponent
+class DemoPage(
+    private val orderController: OrderController,
+    private val productController: ProductController,
+    private val userController: UserController
+) : KComposite() {
 
-    @Autowired
-    private lateinit var orderController: OrderController
-
-    @Autowired
-    private lateinit var productController: ProductController
-
-    @Autowired
-    private lateinit var userController: UserController
 
     init {
         ui {
