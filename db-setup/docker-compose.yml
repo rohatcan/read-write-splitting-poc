@@ -1,0 +1,35 @@
+version: '3'
+services:
+  mysql_primary:
+    image: mysql:8.0.26
+    env_file:
+      - ./primary/mysql_primary.env
+    container_name: "mysql_primary"
+    restart: "no"
+    ports:
+      - 4406:3306
+    volumes:
+      - ./primary/conf/mysql.conf.cnf:/etc/mysql/conf.d/mysql.conf.cnf
+      - ./primary/data:/var/lib/mysql
+    networks:
+      - overlay
+
+  mysql_secondary:
+    image: mysql:8.0.26
+    env_file:
+      - ./secondary/mysql_secondary.env
+    container_name: "mysql_secondary"
+    restart: "no"
+    ports:
+      - 5506:3306
+    depends_on:
+      - mysql_primary
+    volumes:
+      - ./secondary/conf/mysql.conf.cnf:/etc/mysql/conf.d/mysql.conf.cnf
+      - ./secondary/data:/var/lib/mysql
+    networks:
+      - overlay
+
+networks:
+  overlay:
+
