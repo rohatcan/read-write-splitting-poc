@@ -23,7 +23,7 @@ jobs:
           FORMATTED_FILES=""
           while IFS= read -r file; do
             if [ ! -z "$file" ]; then
-              FORMATTED_FILES="${FORMATTED_FILES}• ${file}\\n"
+              FORMATTED_FILES="${FORMATTED_FILES}• ${file}\n"
             fi
           done <<< "$CHANGED_FILES"
           
@@ -41,8 +41,8 @@ jobs:
           SLACK_COLOR: '#008080'
           SLACK_ICON: https://github.com/liquibase/liquibase/raw/master/liquibase-core/src/main/resources/liquibase/liquibase.png
           SLACK_TITLE: '🔄 Database Migration Changes'
-          SLACK_MESSAGE: |
-            *Repository:* ${{ github.repository }}\\n
-            *Changed files:*\\n${{ steps.changed-files.outputs.files_list }}
-            *Commit:* ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+          SLACK_MESSAGE: "*Repository:* ${{ github.repository }}
+                          *Changed files:*
+                          ${{ steps.changed-files.outputs.files_list }}
+                          *Commit:* ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
           MSG_MINIMAL: true
