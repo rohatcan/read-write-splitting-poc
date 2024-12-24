@@ -1,0 +1,73 @@
+name: Liquibase Migration Change Notification
+
+on:
+  pull_request:
+    paths:
+      - '**/db/**/*.xml'
+    types: [opened, synchronize]
+
+jobs:
+  analyze-migration-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # We only need the last commit and its parent
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD | grep -E "db/.*\.xml$" || true)
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Analyze Liquibase changes
+        id: analyze-changes
+        if: steps.changed-files.outputs.files != ''
+        run: |
+          # Function to extract table names from XML
+          analyze_xml() {
+            local file="$1"
+            echo "Analyzing $file..."
+          
+            # Install xmllint if needed
+            sudo apt-get install -y libxml2-utils
+          
+            # Extract table names from various Liquibase change types
+            TABLES=$(xmllint --xpath "//*[local-name()='createTable']/@tableName | //*[local-name()='addColumn']/@tableName | //*[local-name()='dropTable']/@tableName | //*[local-name()='alterTable']/@tableName" "$file" 2>/dev/null | sed 's/tableName=//g' | tr '"' ' ' | sort -u)
+          
+            # Extract change types
+            CHANGES=$(xmllint --xpath "//*[local-name()='createTable' or local-name()='addColumn' or local-name()='dropTable' or local-name()='alterTable' or local-name()='addForeignKeyConstraint' or local-name()='createIndex' or local-name()='dropIndex']" "$file" 2>/dev/null | grep -o '<[^/]*>' | tr -d '<>' | sort -u)
+          
+            echo "📄 File: $file"
+            echo "📊 Affected Tables: $TABLES"
+            echo "🔄 Change Types: $CHANGES"
+            echo "---"
+          }
+          
+          # Create analysis summary
+          SUMMARY="🚨 Database Migration Changes Detected\n\n"
+          while IFS= read -r file; do
+            if [ ! -z "$file" ]; then
+              ANALYSIS=$(analyze_xml "$file")
+              SUMMARY="${SUMMARY}${ANALYSIS}\n"
+            fi
+          done <<< "${{ steps.changed-files.outputs.files }}"
+          
+          echo "changes_summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$SUMMARY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Send Slack notification
+        if: steps.changed-files.outputs.files != ''
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: database-migrations
+          SLACK_COLOR: '#FF0000'
+          SLACK_ICON: https://github.com/liquibase/liquibase/raw/master/liquibase-core/src/main/resources/liquibase/liquibase.png
+          SLACK_TITLE: Database Migration Changes in PR #${{ github.event.pull_request.number }}
+          SLACK_MESSAGE: "${{ steps.analyze-changes.outputs.changes_summary }}\n\nPR Link: ${{ github.event.pull_request.html_url }}"
+          SLACK_FOOTER: "Please review these database changes carefully"
+          MSG_MINIMAL: true
