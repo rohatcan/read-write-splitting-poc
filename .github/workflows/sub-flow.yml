@@ -1,7 +1,7 @@
 name: Sub Workflow
 
 on:
-  workflow_call: 
+  workflow_call:
     inputs:
       example_input:
         description: "An example input"
@@ -12,5 +12,5 @@ jobs:
   example_job:
     runs-on: ubuntu-latest
     steps:
-    - name: Show Input
-      run: echo "Input received: ${{ inputs.example_input }}"
+      - name: Show Input
+        run: echo "Input received: ${{ github.event.inputs.example_input }}"
