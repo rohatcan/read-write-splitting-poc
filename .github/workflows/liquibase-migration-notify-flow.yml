@@ -15,56 +15,18 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Install xmllint
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -qq libxml2-utils > /dev/null
-
       - name: Get changed files
         id: changed-files
         run: |
           CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -E "db/.*\.xml$" || true)
-          echo "files<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Analyze Liquibase changes
-        id: analyze-changes
-        if: steps.changed-files.outputs.files != ''
-        run: |
-          analyze_xml() {
-            local file="$1"
-            
-            # Extract namespace-aware table names and change types
-            TABLES=$(xmllint --xpath "//*[local-name()='createTable' or local-name()='dropTable' or local-name()='renameTable']/@tableName | //*[local-name()='addColumn' or local-name()='dropColumn' or local-name()='modifyDataType']/@tableName | //*[local-name()='addForeignKeyConstraint']/@baseTableName" "$file" 2>/dev/null | sed 's/tableName="//g; s/"//g' | sort -u)
-            
-            CHANGES=$(xmllint --xpath "//*[local-name()='createTable' or local-name()='dropTable' or local-name()='addColumn' or local-name()='dropColumn' or local-name()='addForeignKeyConstraint' or local-name()='createIndex' or local-name()='dropIndex' or local-name()='modifyDataType']" "$file" 2>/dev/null | grep -o '<[^/]*>' | cut -d' ' -f1 | tr -d '<>' | sort -u)
-            
-            # Format the output
-            echo "*File:* ${file##*/}"
-            if [ ! -z "$TABLES" ]; then
-              echo "*Tables:* ${TABLES}"
-            else
-              echo "*Tables:* No table names found"
-            fi
-            if [ ! -z "$CHANGES" ]; then
-              echo "*Changes:* ${CHANGES}"
-            else
-              echo "*Changes:* No changes detected"
-            fi
-          }
-          
-          SUMMARY=""
-          while IFS= read -r file; do
-            if [ ! -z "$file" ]; then
-              ANALYSIS=$(analyze_xml "$file")
-              SUMMARY="${SUMMARY}${ANALYSIS}\n\n"
-            fi
-          done <<< "${{ steps.changed-files.outputs.files }}"
-          
-          echo "changes_summary<<EOF" >> $GITHUB_OUTPUT
-          echo "$SUMMARY" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          if [[ -z "$CHANGED_FILES" ]]; then
+            echo "files=" >> $GITHUB_OUTPUT # Set an empty output if no files changed
+          else
+            echo "files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+          fi
+          echo "::group::List of changed files"
+          echo "$CHANGED_FILES"
+          echo "::endgroup::"
 
       - name: Send Slack notification
         if: steps.changed-files.outputs.files != ''
@@ -73,8 +35,8 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_CHANNEL: '#database-migrations'
           SLACK_USERNAME: 'DB Migration Bot'
-          SLACK_COLOR: '#FF0000'
+          SLACK_COLOR: '#008080' 
           SLACK_ICON: https://github.com/liquibase/liquibase/raw/master/liquibase-core/src/main/resources/liquibase/liquibase.png
-          SLACK_TITLE: '🔄 Database Migration Changes'
-          SLACK_MESSAGE: "${{ steps.analyze-changes.outputs.changes_summary }}Commit: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+          SLACK_TITLE: ' Database Migration Changes'
+          SLACK_MESSAGE: "*List of changed Liquibase files:*\n${{ steps.changed-files.outputs.files }}\nCommit: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}" 
           MSG_MINIMAL: true
