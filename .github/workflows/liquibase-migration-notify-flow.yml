@@ -8,7 +8,7 @@ on:
       - '**/db/**/*.xml'
 
 jobs:
-  send-migration-notification:
+  notify-db-changes:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,25 +18,30 @@ jobs:
       - name: Get changed files
         id: changed-files
         run: |
+          # Get list of changed files and format them
           CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -E "db/.*\.xml$" || true)
-          if [[ -z "$CHANGED_FILES" ]]; then
-            echo "files=" >> $GITHUB_OUTPUT # Set an empty output if no files changed
-          else
-            echo "files=$CHANGED_FILES" >> $GITHUB_OUTPUT
-          fi
-          echo "::group::List of changed files"
-          echo "$CHANGED_FILES"
-          echo "::endgroup::"
+          
+          # Format the files list with bullet points
+          FORMATTED_FILES=""
+          while IFS= read -r file; do
+            if [ ! -z "$file" ]; then
+              FORMATTED_FILES="${FORMATTED_FILES}• ${file}\n"
+            fi
+          done <<< "$CHANGED_FILES"
+          
+          echo "files_list<<EOF" >> $GITHUB_OUTPUT
+          echo "$FORMATTED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Send Slack notification
-        if: steps.changed-files.outputs.files != ''
+        if: steps.changed-files.outputs.files_list != ''
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_CHANNEL: '#database-migrations'
           SLACK_USERNAME: 'DB Migration Bot'
-          SLACK_COLOR: '#008080' 
+          SLACK_COLOR: '#008080'
           SLACK_ICON: https://github.com/liquibase/liquibase/raw/master/liquibase-core/src/main/resources/liquibase/liquibase.png
-          SLACK_TITLE: ' Database Migration Changes'
-          SLACK_MESSAGE: "*List of changed Liquibase files:*\n${{ steps.changed-files.outputs.files }}\nCommit: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}" 
+          SLACK_TITLE: '🔄 Database Migration Changes'
+          SLACK_MESSAGE: "Changed files:\n${{ steps.changed-files.outputs.files_list }}\nCommit: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
           MSG_MINIMAL: true
