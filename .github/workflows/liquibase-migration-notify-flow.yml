@@ -8,7 +8,7 @@ on:
       - '**/db/**/*.xml'
 
 jobs:
-  notify-db-changes:
+  notify-changes:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,14 +18,12 @@ jobs:
       - name: Get changed files
         id: changed-files
         run: |
-          # Get list of changed files and format them
           CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -E "db/.*\.xml$" || true)
           
-          # Format the files list with bullet points
           FORMATTED_FILES=""
           while IFS= read -r file; do
             if [ ! -z "$file" ]; then
-              FORMATTED_FILES="${FORMATTED_FILES}• ${file}\n"
+              FORMATTED_FILES="${FORMATTED_FILES}• ${file}\\n"
             fi
           done <<< "$CHANGED_FILES"
           
@@ -43,5 +41,8 @@ jobs:
           SLACK_COLOR: '#008080'
           SLACK_ICON: https://github.com/liquibase/liquibase/raw/master/liquibase-core/src/main/resources/liquibase/liquibase.png
           SLACK_TITLE: '🔄 Database Migration Changes'
-          SLACK_MESSAGE: "Changed files:\n${{ steps.changed-files.outputs.files_list }}\nCommit: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+          SLACK_MESSAGE: |
+            *Repository:* ${{ github.repository }}\\n
+            *Changed files:*\\n${{ steps.changed-files.outputs.files_list }}
+            *Commit:* ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
           MSG_MINIMAL: true
