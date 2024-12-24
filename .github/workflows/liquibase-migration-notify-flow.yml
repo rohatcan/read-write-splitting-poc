@@ -8,7 +8,7 @@ on:
       - '**/db/**/*.xml'
 
 jobs:
-  analyze-migration-changes:
+  send-migration-notification:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
