@@ -1,0 +1,12 @@
+name: Main Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  call_sub_workflow:
+    uses: ./.github/workflows/sub-workflow.yml 
+    with:
+      example_input: "Hello from Main Workflow"
