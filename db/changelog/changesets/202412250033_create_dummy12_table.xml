@@ -1,0 +1,13 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.5.xsd">
+
+    <changeSet id="alter_dummy_table_add_column_set" author="husnu">
+
+        <addColumn tableName="dummy">
+            <column name="best" type="varchar(255)" afterColumn="id"/>
+        </addColumn>
+
+    </changeSet>
+
+</databaseChangeLog>
