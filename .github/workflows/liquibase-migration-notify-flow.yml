@@ -29,24 +29,24 @@ jobs:
 
           def parse_liquibase_xml(file_path):
               ET.register_namespace('', 'http://www.liquibase.org/xml/ns/dbchangelog')
-              
+          
               try:
                   tree = ET.parse(file_path)
                   root = tree.getroot()
-                  
+          
                   changes = []
-                  
+          
                   for changeset in root.findall('.//{http://www.liquibase.org/xml/ns/dbchangelog}changeSet'):
                       changeset_info = {
                           'id': changeset.get('id'),
                           'author': changeset.get('author'),
                           'changes': []
                       }
-                      
+          
                       for change in changeset:
                           if change.tag.startswith('{http://www.liquibase.org/xml/ns/dbchangelog}'):
                               change_type = change.tag.split('}')[1]
-                              
+          
                               attrs = {}
                               if change_type == 'createTable':
                                   attrs['tableName'] = change.get('tableName')
@@ -57,7 +57,7 @@ jobs:
                                           'type': column.get('type')
                                       }
                                       attrs['columns'].append(col_info)
-                              
+          
                               elif change_type == 'addColumn':
                                   attrs['tableName'] = change.get('tableName')
                                   attrs['columns'] = []
@@ -67,25 +67,25 @@ jobs:
                                           'type': column.get('type')
                                       }
                                       attrs['columns'].append(col_info)
-                              
+          
                               elif change_type == 'dropTable':
                                   attrs['tableName'] = change.get('tableName')
-                              
+          
                               elif change_type == 'addForeignKeyConstraint':
                                   attrs['baseTableName'] = change.get('baseTableName')
                                   attrs['baseColumnNames'] = change.get('baseColumnNames')
                                   attrs['referencedTableName'] = change.get('referencedTableName')
                                   attrs['referencedColumnNames'] = change.get('referencedColumnNames')
-                              
+          
                               changeset_info['changes'].append({
                                   'type': change_type,
                                   'attributes': attrs
                               })
-                      
+          
                       changes.append(changeset_info)
-                  
+          
                   return format_changes(changes)
-              
+          
               except ET.ParseError as e:
                   return f"Error parsing XML file: {str(e)}"
               except Exception as e:
@@ -93,43 +93,43 @@ jobs:
 
           def format_changes(changes):
               output = []
-              
+          
               for changeset in changes:
-                  output.append(f"Changeset ID: {changeset['id']} (Author: {changeset['author']})")
-                  
+                  output.append(f"Changeset ID: {changeset['id']} (Author: {changeset['author']}")
+          
                   for change in changeset['changes']:
                       change_type = change['type']
                       attrs = change['attributes']
-                      
+          
                       if change_type == 'createTable':
                           output.append(f"  Create Table: {attrs['tableName']}")
                           for column in attrs['columns']:
                               output.append(f"    - Column: {column['name']} ({column['type']})")
-                      
+          
                       elif change_type == 'addColumn':
                           output.append(f"  Add Column to {attrs['tableName']}")
                           for column in attrs['columns']:
                               output.append(f"    - Column: {column['name']} ({column['type']})")
-                      
+          
                       elif change_type == 'dropTable':
                           output.append(f"  Drop Table: {attrs['tableName']}")
-                      
+          
                       elif change_type == 'addForeignKeyConstraint':
                           output.append(f"  Add Foreign Key: {attrs['baseTableName']}({attrs['baseColumnNames']}) -> "
                                       f"{attrs['referencedTableName']}({attrs['referencedColumnNames']})")
-                      
+          
                       else:
                           output.append(f"  {change_type}: {attrs}")
-                  
+          
                   output.append("")
-              
+          
               return "\n".join(output)
 
           if __name__ == "__main__":
               if len(sys.argv) < 2:
                   print("Usage: python parse_liquibase.py <path_to_xml_file>")
                   sys.exit(1)
-              
+          
               file_path = sys.argv[1]
               result = parse_liquibase_xml(file_path)
               print(result)
@@ -138,44 +138,60 @@ jobs:
       - name: Get changed files and analyze
         id: changed-files
         run: |
+          # Get list of changed files
           CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -E "db/.*\.xml$" || true)
           
-          FORMATTED_FILES=""
-          CHANGES_ANALYSIS=""
+          # Initialize empty variables
+          FILES_LIST=''
+          ANALYSIS=''
+          
           while IFS= read -r file; do
             if [ ! -z "$file" ]; then
-              FORMATTED_FILES="${FORMATTED_FILES}• ${file}\n"
-              
-              echo "Analyzing changes in ${file}..."
-              FILE_ANALYSIS=$(python parse_liquibase.py "${file}")
-              CHANGES_ANALYSIS="${CHANGES_ANALYSIS}Changes in ${file}:\n${FILE_ANALYSIS}\n\n"
+              # Add file to the list with proper formatting
+              FILES_LIST="${FILES_LIST}• ${file}
+  "
+              # Get the analysis
+              if [ -f "$file" ]; then
+ANALYSIS="${ANALYSIS}Changes in ${file}:
+  $(python parse_liquibase.py "${file}")
+  
+  "
+              fi
             fi
           done <<< "$CHANGED_FILES"
-          
-          echo "files_list<<EOF" >> $GITHUB_OUTPUT
-          echo "$FORMATTED_FILES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "changes_analysis<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGES_ANALYSIS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+
+# Save to outputs using EOF to preserve formatting
+  {
+    echo 'files_list<<EOF'
+    echo "${FILES_LIST}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+    
+    {
+      echo 'changes_analysis<<EOF'
+      echo "${ANALYSIS}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Send Slack notification
-        if: steps.changed-files.outputs.files_list != ''
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_CHANNEL: '#database-migrations'
-          SLACK_USERNAME: 'DB Migration Bot'
-          SLACK_COLOR: '#FF0000'
-          SLACK_ICON: https://github.com/liquibase/liquibase/raw/master/liquibase-core/src/main/resources/liquibase/liquibase.png
-          SLACK_TITLE: '🔄 Database Migration Changes'
-          SLACK_MESSAGE: "*Repository:* ${{ github.repository }}
-
-*Changed files:*
-${{ steps.changed-files.outputs.files_list }}
-*Change Analysis:*
-```${{ steps.changed-files.outputs.changes_analysis }}```
-
-*Commit:* ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
-          MSG_MINIMAL: true
+          if: steps.changed-files.outputs.files_list != ''
+          uses: rtCamp/action-slack-notify@v2
+          env:
+            SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+            SLACK_CHANNEL: '#database-migrations'
+            SLACK_USERNAME: 'DB Migration Bot'
+            SLACK_COLOR: '#FF0000'
+            SLACK_ICON: https://github.com/liquibase/liquibase/raw/master/liquibase-core/src/main/resources/liquibase/liquibase.png
+            SLACK_TITLE: '🔄 Database Migration Changes'
+            SLACK_MESSAGE: |
+              *Repository:* ${{ github.repository }}
+              
+              *Changed files:*
+              ${{ steps.changed-files.outputs.files_list }}
+              *Change Analysis:*
+              ```
+              ${{ steps.changed-files.outputs.changes_analysis }}
+              ```
+              
+              *Commit:* ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+            MSG_MINIMAL: true
